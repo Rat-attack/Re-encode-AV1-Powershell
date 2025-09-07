@@ -34,7 +34,7 @@ $bettersourceLog       = 'Better Source.txt'
 # Only set this to true if you are okay with source files being deleted, this does not move files to recycle bin it straight up deletes them. 
 # You cannot recover the deleted files. If you accept this risk and have compare set to $true then change the following to $true and for the next entry remove: '' #
 $sourceDel             = $false
-$DeleteSourceLog       = '' #'H:\Upscaling\In progress\Deleted Sources Log.txt'
+$DeleteSourceLog       = '' #'Deleted Sources Log.txt'
 
 # --WARNING----WARNING----WARNING----WARNING----WARNING----WARNING----WARNING----WARNING----WARNING----WARNING----WARNING----WARNING----WARNING--
 
@@ -768,6 +768,7 @@ if ((ChoicePrompt 'Start encoding now?' @('Y','N') 'N') -eq 'Y') {
         Write-Host -NoNewline "$global:bigSourceCount " -ForegroundColor Yellow
             Write-Host -NoNewline "total bigger files, "
         Write-Host -NoNewline "$failJobs " -ForegroundColor Red
+
             Write-Host -NoNewline "jobs failed."    
     } 
 }

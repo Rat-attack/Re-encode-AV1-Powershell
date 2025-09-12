@@ -6,6 +6,28 @@ PowerShell 7+ script for interactive or batch re‑encoding of video files to AV
 
 </div>
 
+## Table of Contents
+1. [Overview](#1-overview)
+2. [Requirements](#2-requirements)
+3. [Quick Start](#3-quick-start)
+4. [Configuration Summary](#4-configuration-summary)
+	* [Safety Flags (Deletion Logic)](#safety-flags-deletion-logic)
+5. [Usage Modes](#5-usage-modes)
+	* [Interactive Single / Mixed Files](#a-interactive-single--mixed-files)
+	* [Bulk Defaults Mode](#b-bulk-defaults-mode)
+	* [Queue Mode Resume](#c-queue-mode-resume)
+	* [VR → 2D Conversion](#d-vr--2d-conversion)
+6. [Progress & Control](#6-progress--control)
+7. [Comparison & Logging](#7-comparison--logging)
+8. [Exit Codes & Failures](#8-exit-codes--failures)
+9. [Example Minimal Configuration Block](#9-example-minimal-configuration-block)
+10. [Recommended Starting Values](#10-recommended-starting-values)
+11. [Known Limitations / Future Ideas](#11-known-limitations--future-ideas)
+12. [Troubleshooting](#12-troubleshooting)
+13. [Contributing](#13-contributing)
+14. [Attribution](#14-attribution)
+15. [Disclaimer](#15-disclaimer)
+
 ## 1. Overview
 This repository contains a single interactive PowerShell script (`Re-Encode AV1.ps1`) plus a simple launcher batch file to enable drag & drop. The script can:
 

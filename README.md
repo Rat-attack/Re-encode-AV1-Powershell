@@ -1,121 +1,169 @@
-# Re-encode-AV1-Powershell
-Setup to be an easy to use powershell script that enables anyone to re-encode singular or mass amounts of video files via using FFMPEG and FFProbe. 
-Some manual configuration is required to setup file paths. 
-This does have limited functionality to convert VR videos to 2D singularlly only. 
-All code should be visible with exception to FFMPEG FFProbe files.
+<div align="center">
 
-This was made with ChatGPT AI help so there is a lot of inconsistansies that are in the code however after using it personally and reinfining it for maybe 2 months after porting the CMD .BAT version to Powershell to have an GUI and overall cleaner look.
+# Re-Encode AV1 (PowerShell)
 
-In the process of making this I used FFMPEG version 7.01, you need to download FFMPEG and FFProbe from here yourself: https://www.ffmpeg.org/download.html 
-I personally used this github page: https://github.com/GyanD/codexffmpeg/releases which you can get to via the Windows download section of FFMPEG.org via gyan.dev which takes you to another site where after scrolling down to "Release Builds" you'll see "mirror @ github" and that link there will take you to the same github page. (specifically the latest build)
+PowerShell 7+ script for interactive or batch re‑encoding of video files to AV1 using FFmpeg + FFprobe. Includes optional down‑scaling, VR → 2D conversion, queue management, progress display, size comparison, and (disabled-by-default) conditional source deletion.
 
---
+</div>
 
-Setup to do after downloading
+## 1. Overview
+This repository contains a single interactive PowerShell script (`Re-Encode AV1.ps1`) plus a simple launcher batch file to enable drag & drop. The script can:
 
-If you don't do this setup, nothing will work correctly. Inside the .PS file there should be comments that explain briefly each configurable thing with examples of how to setup incase you skip this.
+* Re‑encode one or many files (you can drop files or folders onto the launcher)
+* Build a queue before starting encoding
+* Detect and optionally skip files already encoded with AV1
+* Down‑scale automatically (global defaults or per‑file prompts)
+* Handle VR / 360° content, with optional VR → flat 2D conversion (draft or final)
+* Show live FFmpeg progress with ETA and cancellation options (abort now / after current)
+* Compare output vs source size and optionally delete the larger file or (dangerous) the source when smaller
+* Log key events to text files for later review
 
-So first of all is the FFMPEG stuff as without setting this, of course it won't work, best way to do it is to go to the folder that has the two .exe's in it and copy and paste the windows explorer path into the spot (the folder needs to be read-able and not hidden). See an example below:
-# ----FFMPEG pathings----
-# Set this to the pathway where these files are stored. --REQUIRED--
-# e.g: 'C:\Re-encode AV1\ffmpeg.exe'
-$ffmpegPath            = 'ffmpeg.exe'
-$ffprobePath           = 'ffprobe.exe'
+The code intentionally keeps configuration in one clearly marked region near the top of the script.
 
-Next up is the text files to log/store all the information so nearly anything that goes wrong with the script can be read afterwards if (somehow as it hasn't happened yet to me) your computer crashes from this or you close the CMD Window. Setting these up are the same as FFMPEG however you just need an empty folder as the script will create all the text files itself, it just needs to know where is okay to do so. 
-I do recommend that you have Queue.txt be easy to drag and drop onto "Re-encode AV1 launcher.bat" as that is the launcher for the .PS file which is the script itself. (the .bat file is apparently the best way to get stuff to the script as files can't be dropped straight into an .PS file)
-Note: Default errors aren't saved to any files, only stuff I've setup to save to text files will. (I haven't looked up or thought until writing this to look up about doing so)
+## 2. Requirements
+* Windows (developed and tested on Windows with PowerShell 7+)
+* PowerShell 7 or later (pwsh)
+* FFmpeg + FFprobe binaries (same build version recommended). Script authored against FFmpeg 7.0.1.
 
-# ----Text File names and pathings----
-# Set these to pathways where your okay with .txt files being made that you once in a while view. --REQUIRED--
-# e.g: 'C:\Re-encode AV1\logs\Queue.txt'
-$queuebackupFile       = 'Queue backup.txt'
-$queueFile             = 'Queue.txt'
-# This text file will store all files that have been detected as being AV1 already, it will only be added to not compared against as it's just a log.
-$alreadyAv1Log         = 'Already AV1.txt'
-$errorLog              = 'Error Log.txt'
+Download FFmpeg: https://ffmpeg.org/download.html  
+Convenient builds (used during development): https://github.com/GyanD/codexffmpeg/releases
 
-This you do not set a path for inside your computer, it is just to make it so when a file is re-encoded via the script it doesn't result in it overwriting the original file. (there's an setting below to make it so that the source file does get deleted if the re-encoded file is smaller than the source file)
+Ensure `ffmpeg.exe` and `ffprobe.exe` are accessible via the configured absolute paths (recommended) or are in the working directory.
 
-# This changes what text will be added to the end of re-encoded files
-$global:outName        = 're-encoded'
+## 3. Quick Start
+1. Download / clone this repository.
+2. Download and extract FFmpeg; place `ffmpeg.exe` and `ffprobe.exe` somewhere stable (e.g. `C:\Tools\FFmpeg`).
+3. Open `Re-Encode AV1.ps1` and edit the configuration block (top of file):
+	* Set `$ffmpegPath` and `$ffprobePath`.
+	* Optionally set log file paths (or leave as relative names to write beside the script / current working directory).
+4. (Optional) Create a dedicated `logs` folder and point the log-related variables there.
+5. Run once (right‑click → Run in PowerShell OR launch via the batch file) to verify no path errors.
+6. Drag video files or folders onto `Re-encode AV1 launcher.bat` to begin interactive queue building.
 
-If you know what debug mode usually means then I don't need to really explain this but this just changes/enables a few more commands to output text to help give you more detail if something has gone wrong and you fancy troubleshooting it yourself. This doesn't as a result prevent default error codes being shown by the script which normally show which line of the script caused the error...also these default errors aren't saved to any files.
+## 4. Configuration Summary
+All tunables reside at the top of `Re-Encode AV1.ps1`. Key variables:
 
-# ----Debug mode----- Not much extra is revealed due to this
-$global:debugmode      = $false
+| Variable | Purpose | Notes |
+|----------|---------|-------|
+| `$ffmpegPath`, `$ffprobePath` | Absolute (recommended) or relative paths to FFmpeg tools | Required. Script will fail early if not correct. |
+| `$queueFile`, `$queuebackupFile` | Main and backup queue persistence | Queue survives interruptions. |
+| `$alreadyAv1Log` | Files detected already AV1 | Append‑only. |
+| `$errorLog` | Non‑zero FFmpeg exits | Captures exit codes. |
+| `$bettersourceLog` | Outputs larger than source (when comparison enabled) | Only written if comparison enabled. |
+| `$DeleteSourceLog` | Records deleted sources (if dangerous deletion opt‑in) | Must be set (non‑blank) AND `$sourceDel=$true`. |
+| `$global:outName` | Suffix added before `.mkv` | Prevents overwrite. |
+| `$compare` | Enable size comparison after each encode | Off by default. |
+| `$compareDel` | Delete the new file if it is larger | Requires `$compare=$true`. |
+| `$sourceDel` | Delete source if new file is smaller | Strongly discouraged; permanent delete. |
+| `$global:debugmode` | Extra verbose internal tracing | Mostly for troubleshooting. |
+| `$videoExts` | Recognized input extensions | Extend if FFmpeg supports more. |
+| `$global:batchCRF` | Default CRF in bulk mode | AV1 typical good quality: ~28–32; script default 30. |
+| `$global:batchScale`, `$global:monitor`, `$global:monitorScale` | Automated down‑scale control | Leave `$batchScale` empty to trigger conditional monitor scaling. |
+| `$global:monitorScaleVR` | Base scale for VR → 2D projection | Required for VR 2D conversion. |
+| `$global:batchPreset`, `$global:batchVRPreset` | SVT-AV1 preset values | Higher number = slower (in SVT‑AV1 lower = faster). VR preset must be ≥ 8 per inline note. |
+| `$global:affinityMask` | Optional CPU affinity bitmask | 0 = no restriction. |
+| `$global:priorityLevel` | Process priority (Idle…RealTime) | Use Idle for background encoding. |
 
-So I made this to show easily if the re-encoded file just made is bigger or smaller than the source file along with automatice deletion of either file. The re-encoded file is only deleted if it's bigger than the source file and the source file is only deleted if the re-encoded file is smaller than the source file.
-I DO NOT RECOMMEND ENABLING SOURCE FILE DELETION. The reason for this is that the command used to delete the file does so in such a way that results in the file not appearing in the Recycling Bin, I believe it's the same as if you use CMD to delete a file. Which is also why I made the process to enable it an 3 step process because your the one making the decision for source files to be deleted BASED SOLELY ON FILE SIZE rather than checking the file yourself (which I recommend doing so since not every re-encode goes correctly)
+### Safety Flags (Deletion Logic)
+Deletion is irreversible (no Recycle Bin). To enable source deletion you must:
+1. Set `$compare = $true` (size comparison must run)
+2. Set `$sourceDel = $true`
+3. Provide a non‑empty `$DeleteSourceLog` path (e.g. `"Deleted Sources Log.txt"`)
 
-# -----Comparsion/auto deletion stuff-----
-$compare               = $false
-# If set to true will auto delete re-encoded files that are bigger than the source file.
-$compareDel            = $false
-# This text file is where any file that has had an re-encoded version end up bigger than itself will be logged.
-# e.g: 'C:\Re-encode AV1\logs\Better Source.txt'
-$bettersourceLog       = 'Better Source.txt'
+Without all three, source deletion will not occur. Review log output before trusting automation.
 
-Incase it isn't clear.....this is where you enable source file deletion, this is untested because....I don't personally want my source files deleted. However if you do then you simply change $false to $true for $sourceDel. Then for $DeleteSourceLog you remove the '' # and set the file path as without setting the log text file path, source deletion should not occur, it does not check if the text file exist, only if the path is set.
+## 5. Usage Modes
+### a. Interactive Single / Mixed Files
+Run the script (or drag items). You will be prompted per file for:
+* CRF
+* Rename output
+* VR / 360° status and (optionally) VR → 2D conversion
+* Down‑scaling choice
+* Preset (VR conditional)
 
-# --WARNING----WARNING----WARNING----WARNING----WARNING----WARNING----WARNING----WARNING----WARNING----WARNING----WARNING----WARNING----WARNING--
+Each confirmed configuration line is appended to the queue file. Encoding starts only after explicit confirmation.
 
-# Only set this to true if you are okay with source files being deleted, this does not move files to recycle bin it straight up deletes them. 
-# You cannot recover the deleted files. If you accept this risk and have compare set to $true then change the following to $true and for the next entry remove: '' #
-$sourceDel             = $false
-$DeleteSourceLog       = '' #'Deleted Sources Log.txt'
+### b. Bulk Defaults Mode
+When prompted “Apply defaults to all…”, answer Yes to enqueue every detected video using the pre‑configured global defaults (`$global:batchCRF`, scaling logic, presets). Useful for hands‑off batch jobs.
 
-# --WARNING----WARNING----WARNING----WARNING----WARNING----WARNING----WARNING----WARNING----WARNING----WARNING----WARNING----WARNING----WARNING--
+### c. Queue Mode Resume
+If you pass the queue file itself as the only argument (e.g. drag `Queue.txt` onto the launcher) the script switches to batch execution of the remaining queue entries.
 
-This is where all the video extensions that FFMPEG recognizes and can deal with are listed, I left this in the config area as an way to in the future more extensions become a thing then they can be added. (presuming the FFMPEG version your using supports it)
+### d. VR → 2D Conversion
+Prompts allow a draft encode (very fast, high CRF, preset 13) to test FOV / pitch, then a final pass. Supports fisheye input path and equirectangular handling via FFmpeg `v360` filter.
 
-# --Video extensions recognized--
-$videoExts             = @('.mp4', '.mkv', '.webm', '.mov', '.avi', '.flv', '.wmv', '.m4v', '.ts', '.mts', '.m2ts', '.mpeg', '.mpg', '.3gp', '.3g2')
+## 6. Progress & Control
+During encoding a live percentage and ETA are shown (derived from parsed `time=` and total duration). Press `q` then choose:
+* Abort Now (kills current job; partial output file is removed)
+* Abort After (finish current job, stop before next)
 
-# ----Batch defaults----
-# So if you want to change the default settings of batch encoding then change these otherwise skip this section.
+Ctrl+C is also trapped to terminate gracefully.
 
-So I feel my comments are pretty accurate as is right now so I'm not going to say anything but read the comment.
+## 7. Comparison & Logging
+If `$compare = $true` the script evaluates output vs source file size:
+* Larger output → optionally delete new file if `$compareDel = $true` else keep & log.
+* Smaller output → optionally delete source if the (dangerous) deletion trio is enabled.
 
-# --CRF--
-# The higher the number the worse quality the re-encoded video becomes, however the size decreases even more and processing speed is increased.
-# Due to AV1 recommended is 30 as highest value to keep good quality with great size reduction, x265 is still best for size reduction.
-$global:batchCRF       = 30
+Written logs:
+* Already AV1 detections (`$alreadyAv1Log`)
+* Larger source cases (`$bettersourceLog`)
+* Deleted sources (`$DeleteSourceLog`)
+* Non‑zero exit codes (`$errorLog`)
+* Queue backup (`$queuebackupFile`)
 
-Alright auto scaling fun time....
+## 8. Exit Codes & Failures
+Failed jobs remain in the queue file; successful jobs are removed. A summary is printed at the end including counts of failed jobs and “bigger output” cases.
 
-# --Auto scaling--
-# Copy and paste any of these into batchScale, use the end number of each one for monitor except last one due to auto-scaling. Only use the "" if you don't want any de-scaling to occur AND set monitor to something like 10000
-# "scale='min(3840,iw)':2160"
-# "scale='min(2560,iw)':1440"
-# "scale='min(1920,iw)':1080"
-# "scale='min(1280,iw)':720"
-# ""
+## 9. Example Minimal Configuration Block
+```powershell
+$ffmpegPath      = 'C:\Tools\FFmpeg\ffmpeg.exe'
+$ffprobePath     = 'C:\Tools\FFmpeg\ffprobe.exe'
+$queueFile       = 'Queue.txt'
+$queuebackupFile = 'Queue backup.txt'
+$alreadyAv1Log   = 'Already AV1.txt'
+$errorLog        = 'Error Log.txt'
+$bettersourceLog = 'Better Source.txt'
+$global:outName  = 're-encoded'
+$compare         = $true          # enable size comparison
+$compareDel      = $true          # delete new file if larger
+$sourceDel       = $false         # KEEP sources (recommended)
+$DeleteSourceLog = ''             # set only if enabling sourceDel
+```
 
-$global:batchScale     = ""
-$global:monitor        = 2160
-# This will overide batchScale BUT only if batchScale is left empty and video height is more than monitor is set to. This is also used outside of batch mode.
-$global:monitorScale   = "scale='min(3840,iw)':2160"
+## 10. Recommended Starting Values
+* CRF 30 (balance quality / size; lower is higher quality)
+* Preset 6 (general) / 8 (VR default enforced by comments)
+* Leave `$batchScale` empty and set `$monitor = 2160` for automatic 4K→downscale gating.
 
-# This one is specifically when your turning an VR video into 2D one, do not leave it empty. (2D section is very uncooked and needs work that I currently can't give it yet)
-# "w=3840:h=2160" 
-# "w=2560:h=1440" 
-# "w=1920:h=1080" 
-# "w=1280:h=720" 
+## 11. Known Limitations / Future Ideas
+* Source deletion relies solely on relative size; no perceptual quality checks.
+* VR 2D branch marked “uncooked” and could be modularized.
+* No hash comparison to prevent duplicate queue entries across sessions.
+* No audio re‑encode options (always copy). Could add bitrate control later.
+* No built‑in update mechanism or parameter file; all config is inline.
 
-$global:monitorScaleVR = "w=3840:h=2160" 
+## 12. Troubleshooting
+| Symptom | Check |
+|---------|-------|
+| FFmpeg not found | Paths to `$ffmpegPath` / `$ffprobePath` correct? Escaped backslashes? |
+| Progress stuck at 0% | Very short file or FFmpeg not emitting timing yet (wait up to ~30s). |
+| Queue never starts | You answered No to “Start encoding now?” – rerun and choose Yes or drag the queue file. |
+| Output overwrote original | `$global:outName` removed/empty? Ensure suffix remains distinct. |
+| Source deleted unexpectedly | Verify you set *all three* deletion toggles; review `$DeleteSourceLog`. |
 
-# --Presets--
-# Don't set VR preset to less than 8 otherwise encoding WILL FAIL!!! FFMPEG can't do it currently.
+Enable `$global:debugmode = $true` for deeper verbose tracing (internal loop messages).
 
-$global:batchPreset    = 6
-$global:batchVRPreset  = 8
+## 13. Contributing
+Open an issue or PR with concise description. Please keep style consistent (PowerShell 7+, explicit variable names, minimal external dependencies).
 
-# ----CPU usage/masking----
-# Set this to 0 if you want to allow FFMPEG to use all CPU, only change if you know how to set an processor affinity mask hex (google it).
-$global:affinityMask   = 0
+## 14. Attribution
+Initial script created with iterative AI assistance and refined manually over ~2 months from an earlier batch (.bat) implementation.
 
-# Replace what's inside the brackets with one of these to set tell your computer if it can divert resources away going from "divert next to everything" to "divert nothing", do not leave it empty.
-# Idle is recommended for background encoding so you can use your computer.
-# Idle, BelowNormal, Normal, AboveNormal, High, RealTime.
-$global:prioritylevel  = "Idle"
+## 15. Disclaimer
+Use at your own risk. Always test on sample copies before enabling any deletion features. No warranty is provided.
+
+---
+
+If you need a lighter “quick start” version for end users you can extract the Configuration + Quick Start sections into a separate document.
+
+Enjoy efficient AV1 re‑encoding.

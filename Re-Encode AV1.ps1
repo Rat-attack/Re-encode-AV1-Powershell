@@ -444,6 +444,7 @@ if (-not $queueMode) {
         $bulkVR = ChoicePrompt "Is this an VR queue?" @('Y','N') 'N'
 
         foreach ($in in $videoFiles) {
+            $scale = ""
             $codec = ffprobe-codec $in
             if ($codec -eq 'av1') {
                 Add-Content -LiteralPath $alreadyAv1Log $in
@@ -455,8 +456,19 @@ if (-not $queueMode) {
             }
 
             $height = ffprobe-height $in
-            if ($bulkVR -eq 'N' -and $height -gt $global:monitor -and $global:batchScale -eq ""){
-                    $global:batchScale  = $global:monitorScale
+            if ($bulkVR -eq 'N' -and $global.batchScale -eq ""){
+                if($global:debugmode -eq $true){
+                    Write-Host "[DEBUG MODE IS ON] " -ForegroundColor Blue
+                    Write-Host "Batch Downscale correction triggered, bulkVR: $bulkVR, Set monitor: $global:monitor, Set batchScale: $global:batchScale, File is: $in" -ForegroundColor Yellow
+                }
+                $scale = $global.batchScale
+            }
+            elseif($bulkVR -eq 'N' -and $height -gt $global:monitor -and $global:batchScale -eq ""){
+                if($global:debugmode -eq $true){
+                    Write-Host "[DEBUG MODE IS ON] " -ForegroundColor Blue
+                    Write-Host "Monitor Downscale correction triggered, bulkVR: $bulkVR, Detected height: $height, Set monitor: $global:monitor, Set batchScale: $global:batchScale, File is: $in" -ForegroundColor Yellow
+                }  
+                $scale  = $global:monitorScale     
             }
 
             if ($bulkVR -eq 'Y') {
@@ -472,7 +484,7 @@ if (-not $queueMode) {
                 $bn  = [IO.Path]::GetFileNameWithoutExtension($in)
                 $out = Join-Path (Split-Path $in -Parent) "$bn $global:outName.mkv"
 
-                $flt = if ($global:batchScale) { "-filter_complex [0:v]$global:batchScale[vf] -map [vf]" } else { '-map 0:v' }
+                $flt = if ($scale -ne "") { "-filter_complex [0:v]$scale[vf] -map [vf]" } else { '-map 0:v' }
                 $args = "-i `"$in`" $flt -map 0:a? -map 0:s? -map_metadata:g 0 -map_metadata:s -1 -c:v libsvtav1 -pix_fmt yuv420p10le -fps_mode passthrough -crf $global:batchCRF -preset $global:batchPreset -svtav1-params fast-decode=1:enable-qm=1:enable-overlays=1:enable-tf=0:scd=0 -c:a copy -c:s copy `"$out`""
                 Queue-Add $ffmpegPath $args $in
             }
@@ -775,3 +787,4 @@ if ((ChoicePrompt 'Start encoding now?' @('Y','N') 'N') -eq 'Y') {
 else {
     Write-Host "You can resume later by running the script and loading $queueFile."
 }
+

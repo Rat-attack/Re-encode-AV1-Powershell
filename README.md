@@ -57,13 +57,13 @@ Ensure `ffmpeg.exe` and `ffprobe.exe` are accessible via the configured absolute
 2. Download and extract FFmpeg; place `ffmpeg.exe` and `ffprobe.exe` somewhere stable (e.g. `C:\Tools\FFmpeg`).
 3. Open `Re-Encode AV1.ps1` and edit the configuration block (top of file):
 	* Set `$ffmpegPath` and `$ffprobePath`.
-	* Optionally set log file paths (or leave as relative names to write beside the script / current working directory).
-4. (Optional) Create a dedicated `logs` folder and point the log-related variables there.
+	* Optionally set log file paths (or leave as relative names to write beside the script / current working directory). (Not tested yet)
+4. (Optional) Create a dedicated `logs` folder and point the log-related variables there. (Not tested yet)
 5. Run once (right‑click → Run in PowerShell OR launch via the batch file) to verify no path errors.
 6. Drag video files or folders onto `Re-encode AV1 launcher.bat` to begin interactive queue building.
 
 ## 4. Configuration Summary
-All tunables reside at the top of `Re-Encode AV1.ps1`. Key variables:
+All tunables reside at the top of `Re-Encode AV1.ps1`, it is recommended to read and change them all especially for batch running. Key variables:
 
 | Variable | Purpose | Notes |
 |----------|---------|-------|
@@ -92,7 +92,7 @@ Deletion is irreversible (no Recycle Bin). To enable source deletion you must:
 2. Set `$sourceDel = $true`
 3. Provide a non‑empty `$DeleteSourceLog` path (e.g. `"Deleted Sources Log.txt"`)
 
-Without all three, source deletion will not occur. Review log output before trusting automation.
+Without all three, source deletion will not occur. Review log output before trusting automation. Enabling this comes at your own risk as once again files are not recoverable.
 
 ## 5. Usage Modes
 ### a. Interactive Single / Mixed Files
@@ -112,29 +112,35 @@ When prompted “Apply defaults to all…”, answer Yes to enqueue every detect
 If you pass the queue file itself as the only argument (e.g. drag `Queue.txt` onto the launcher) the script switches to batch execution of the remaining queue entries.
 
 ### d. VR → 2D Conversion
-Prompts allow a draft encode (very fast, high CRF, preset 13) to test FOV / pitch, then a final pass. Supports fisheye input path and equirectangular handling via FFmpeg `v360` filter.
+Prompts allow a draft encode (very fast, high CRF, preset 13) to test FOV / pitch, then a final pass. Supports fisheye input path and equirectangular handling via FFmpeg `v360` filter. There is no batch mode version of this due to the specific configuration you'll most likely have to do.
 
 ## 6. Progress & Control
 During encoding a live percentage and ETA are shown (derived from parsed `time=` and total duration). Press `q` then choose:
 * Abort Now (kills current job; partial output file is removed)
 * Abort After (finish current job, stop before next)
 
-Ctrl+C is also trapped to terminate gracefully.
+Ctrl+C is also trapped to terminate ungracefully compared to the 'q' method.
+It is possible to change 'q' method to trigger on another single key input via going to roughly line 264.
 
 ## 7. Comparison & Logging
 If `$compare = $true` the script evaluates output vs source file size:
 * Larger output → optionally delete new file if `$compareDel = $true` else keep & log.
-* Smaller output → optionally delete source if the (dangerous) deletion trio is enabled.
+* Smaller output → optionally delete source if the (dangerous) deletion trio is enabled, a log is always made.
 
-Written logs:
+Written logs (most are never overwritten/deleted):
 * Already AV1 detections (`$alreadyAv1Log`)
 * Larger source cases (`$bettersourceLog`)
 * Deleted sources (`$DeleteSourceLog`)
 * Non‑zero exit codes (`$errorLog`)
-* Queue backup (`$queuebackupFile`)
+* Queue backup (overwritten whenever an new queue starts) (`$queuebackupFile`)
 
 ## 8. Exit Codes & Failures
-Failed jobs remain in the queue file; successful jobs are removed. A summary is printed at the end including counts of failed jobs and “bigger output” cases.
+Failed jobs remain in the queue file; successful jobs are removed. A summary is printed at the end including counts of failed jobs and “bigger output” cases. The codes are what FFMPEG outputs to the script and so it is up to yourself to find out what they mean. However below is commonly reported exit codes and their rough fixes.
+
+###Common exit codes:
+| Code | Rough reason | Fix |
+|----------|---------|-------|
+| 22 | Unable to make output file | Change the output file name manually via going into queue.txt or run the file manually |
 
 ## 9. Example Minimal Configuration Block
 ```powershell
@@ -155,12 +161,12 @@ $DeleteSourceLog = ''             # set only if enabling sourceDel
 ## 10. Recommended Starting Values
 * CRF 30 (balance quality / size; lower is higher quality)
 * Preset 6 (general) / 8 (VR default enforced by comments)
-* Leave `$batchScale` empty and set `$monitor = 2160` for automatic 4K→downscale gating.
+* Leave `$batchScale` empty and set `$monitor = 2160` & `$global:monitorScale = scale='min(3840,iw)':2160` for automatic 4K→downscale gating.
 
 ## 11. Known Limitations / Future Ideas
 * Source deletion relies solely on relative size; no perceptual quality checks.
-* VR 2D branch marked “uncooked” and could be modularized.
-* No hash comparison to prevent duplicate queue entries across sessions.
+* VR 2D branch marked “uncooked” and could be modularized along with more testing.
+* No hash comparison to prevent duplicate queue entries across sessions. Easily resulting in script seemingly freezing if an file with same name as the output file to be created exists in the same folder.
 * No audio re‑encode options (always copy). Could add bitrate control later.
 * No built‑in update mechanism or parameter file; all config is inline.
 
@@ -172,20 +178,23 @@ $DeleteSourceLog = ''             # set only if enabling sourceDel
 | Queue never starts | You answered No to “Start encoding now?” – rerun and choose Yes or drag the queue file. |
 | Output overwrote original | `$global:outName` removed/empty? Ensure suffix remains distinct. |
 | Source deleted unexpectedly | Verify you set *all three* deletion toggles; review `$DeleteSourceLog`. |
+| Script is seemingly frozen after Please wait message | See if an file already exists with the same name as the output intended name, if one does delete or rename it and reattempt. |
 
 Enable `$global:debugmode = $true` for deeper verbose tracing (internal loop messages).
 
 ## 13. Contributing
 Open an issue or PR with concise description. Please keep style consistent (PowerShell 7+, explicit variable names, minimal external dependencies).
+There may be an length wait time prior to it being added to the main branch or there may be comments made to query further about it.
 
 ## 14. Attribution
-Initial script created with iterative AI assistance and refined manually over ~2 months from an earlier batch (.bat) implementation.
+Initial script created with iterative AI assistance and refined manually over ~2 months from an earlier batch (.bat) implementation that has been used for over a year personally.
 
 ## 15. Disclaimer
-Use at your own risk. Always test on sample copies before enabling any deletion features. No warranty is provided.
+Use at your own risk. Always test on sample copies before enabling any deletion features. No warranty is provided. Any files deleted as a result are your own responsibility.
 
 ---
 
 If you need a lighter “quick start” version for end users you can extract the Configuration + Quick Start sections into a separate document.
 
 Enjoy efficient AV1 re‑encoding.
+

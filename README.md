@@ -137,10 +137,15 @@ Written logs (most are never overwritten/deleted):
 ## 8. Exit Codes & Failures
 Failed jobs remain in the queue file; successful jobs are removed. A summary is printed at the end including counts of failed jobs and “bigger output” cases. The codes are what FFMPEG outputs to the script and so it is up to yourself to find out what they mean. However below is commonly reported exit codes and their rough fixes.
 
-###Common exit codes:
+### Common exit codes:
 | Code | Rough reason | Fix |
 |----------|---------|-------|
-| 22 | Unable to make output file | Change the output file name manually via going into queue.txt or run the file manually |
+| 1 | Generic error | Syntax errors, invalid options, missing file. Check command, paths, and quotes. |
+| 2 | Invalid input | Input file cannot be read. Verify file exists and FFmpeg can access it. Use `ffprobe` to test. |
+| -22 | Invalid argument or can't process the file. Often due to stream mapping issues or unsupported options. | Try slightly different arguements or check the source file is not corrupted. For example if an cover image/art is present use `-map 0:v:0` in place of `-map 0:v` |
+| -1 | Unknown / abnormal termination | FFmpeg crashed or was killed. Check system resources, permissions, or update FFmpeg. |
+| 255 | File not found / access denied | Output directory does not exist or permission denied. Create folder and check write permissions. |
+| Big Long Numbers | Windows got in the way or something else caused it to fail | Try seeing first if it's file specific or not and if you have any special characters in the file name and removing them. Those can mess with Powershell and FFMPEG's ability to find the files.|
 
 ## 9. Example Minimal Configuration Block
 ```powershell
@@ -197,4 +202,5 @@ Use at your own risk. Always test on sample copies before enabling any deletion 
 If you need a lighter “quick start” version for end users you can extract the Configuration + Quick Start sections into a separate document.
 
 Enjoy efficient AV1 re‑encoding.
+
 

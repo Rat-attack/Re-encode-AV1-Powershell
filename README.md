@@ -5,7 +5,7 @@
 PowerShell 7+ script for interactive or batch re‑encoding of video files to AV1 using FFmpeg + FFprobe. Includes optional down‑scaling, VR → 2D ## 13. Troubleshooting
 | Symptom | Check |
 |---------|-------|
-| FFmpeg not found | Paths to `$ffmpegPath` / `$ffprobePath` correct? Try running the automated installer: `.\Install-FFmpeg.ps1` |
+| FFmpeg not found | Paths to `$ffmpegPath` / `$ffprobePath` correct? Escaped backslashes? Try running the automated installer: `.\Install-FFmpeg.ps1` |
 | Progress stuck at 0% | Very short file or FFmpeg not emitting timing yet (wait up to ~30s). |
 | Queue never starts | You answered No to "Start encoding now?" – rerun and choose Yes or drag the queue file. |
 | Output overwrote original | `$global:outName` removed/empty? Ensure suffix remains distinct. |
@@ -19,7 +19,7 @@ PowerShell 7+ script for interactive or batch re‑encoding of video files to AV
 1. [Overview](#1-overview)
 2. [Requirements](#2-requirements)
 3. [Automated Installation](#3-automated-installation)
-4. [Manual Setup](#4-manual-setup)
+4. [Quick Start](#4-quick-start)
 5. [Configuration Summary](#5-configuration-summary)
 	* [Safety Flags (Deletion Logic)](#safety-flags-deletion-logic)
 6. [Usage Modes](#6-usage-modes)
@@ -39,7 +39,7 @@ PowerShell 7+ script for interactive or batch re‑encoding of video files to AV
 16. [Disclaimer](#16-disclaimer)
 
 ## 1. Overview
-This repository contains an interactive PowerShell script (`Re-Encode AV1.ps1`) plus a simple launcher batch file to enable drag & drop, and an automated FFmpeg installer (`Install-FFmpeg.ps1`) for easy setup. The script can:
+This repository contains a single interactive PowerShell script (`Re-Encode AV1.ps1`) plus a simple launcher batch file to enable drag & drop, and an automated FFmpeg installer (`Install-FFmpeg.ps1`) for easy setup. The script can:
 
 * Re‑encode one or many files (you can drop files or folders onto the launcher)
 * Build a queue before starting encoding
@@ -80,11 +80,7 @@ That's it! After the installer completes, you can immediately start using the en
 - **Force reinstall**: Run `.\Install-FFmpeg.ps1 -Force` to reinstall even if FFmpeg is already present
 - **Custom path**: Run `.\Install-FFmpeg.ps1 -InstallPath "C:\Your\Path"` to install to a different location
 
-## 4. Manual Setup
-If you prefer to install FFmpeg manually or the automated installer doesn't work for your setup:
-## 4. Manual Setup
-If you prefer to install FFmpeg manually or the automated installer doesn't work for your setup:
-
+## 4. Quick Start
 1. Download / clone this repository.
 2. Download and extract FFmpeg; place `ffmpeg.exe` and `ffprobe.exe` somewhere stable (e.g. `C:\Tools\FFmpeg`).
 3. Open `Re-Encode AV1.ps1` and edit the configuration block (top of file):

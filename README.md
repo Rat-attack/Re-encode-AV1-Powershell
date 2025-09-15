@@ -2,7 +2,7 @@
 
 # Re-Encode AV1 (PowerShell)
 
-PowerShell 7+ script for interactive or batch re‑encoding of video files to AV1 using FFmpeg + FFprobe. Includes optional down‑scaling, VR → 2D ## 13. Troubleshooting
+PowerShell 7+ script for interactive or batch re‑encoding of video files to AV1 using FFmpeg + FFprobe. Includes optional down‑scaling, VR → 2D conversion, queue management, progress display, size comparison, and (disabled-by-default) conditional source deletion.
 
 </div>
 
@@ -222,6 +222,7 @@ Use at your own risk. Always test on sample copies before enabling any deletion 
 If you need a lighter “quick start” version for end users you can extract the Configuration + Quick Start sections into a separate document.
 
 Enjoy efficient AV1 re‑encoding.
+
 
 
 

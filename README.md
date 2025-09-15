@@ -3,15 +3,6 @@
 # Re-Encode AV1 (PowerShell)
 
 PowerShell 7+ script for interactive or batch re‑encoding of video files to AV1 using FFmpeg + FFprobe. Includes optional down‑scaling, VR → 2D ## 13. Troubleshooting
-| Symptom | Check |
-|---------|-------|
-| FFmpeg not found | Paths to `$ffmpegPath` / `$ffprobePath` correct? Escaped backslashes? Try running the automated installer: `.\Install-FFmpeg.ps1` |
-| Progress stuck at 0% | Very short file or FFmpeg not emitting timing yet (wait up to ~30s). |
-| Queue never starts | You answered No to "Start encoding now?" – rerun and choose Yes or drag the queue file. |
-| Output overwrote original | `$global:outName` removed/empty? Ensure suffix remains distinct. |
-| Source deleted unexpectedly | Verify you set *all three* deletion toggles; review `$DeleteSourceLog`. |
-| Script is seemingly frozen after Please wait message | See if an file already exists with the same name as the output intended name, if one does delete or rename it and reattempt. |
-| Installer fails | Try running as Administrator, check internet connection, or use manual setup instead. |n, queue management, progress display, size comparison, and (disabled-by-default) conditional source deletion.
 
 </div>
 
@@ -230,5 +221,6 @@ Use at your own risk. Always test on sample copies before enabling any deletion 
 If you need a lighter “quick start” version for end users you can extract the Configuration + Quick Start sections into a separate document.
 
 Enjoy efficient AV1 re‑encoding.
+
 
 

@@ -72,10 +72,11 @@ That's it! After the installer completes, you can immediately start using the en
 - **Custom path**: Run `.\Install-FFmpeg.ps1 -InstallPath "C:\Your\Path"` to install to a different location
 
 ## 4. Quick Start
+#Refer to [Automated Installation](#3-automated-installation) first. This is just if you want to do it by hand.
 1. Download / clone this repository.
-2. Download and extract FFmpeg; place `ffmpeg.exe` and `ffprobe.exe` somewhere stable (e.g. `C:\Tools\FFmpeg`).
+2. Download and extract FFmpeg; place `ffmpeg.exe` and `ffprobe.exe` in your folder.
 3. Open `Re-Encode AV1.ps1` and edit the configuration block (top of file):
-	* Set `$ffmpegPath` and `$ffprobePath`.
+	* Set `$ffmpegPath` and `$ffprobePath` to wherever you installed the files in step 2.
 	* Optionally set log file paths (or leave as relative names to write beside the script / current working directory). (Not tested yet)
 4. (Optional) Create a dedicated `logs` folder and point the log-related variables there. (Not tested yet)
 5. Run once (right‑click → Run in PowerShell OR launch via the batch file) to verify no path errors.
@@ -221,6 +222,7 @@ Use at your own risk. Always test on sample copies before enabling any deletion 
 If you need a lighter “quick start” version for end users you can extract the Configuration + Quick Start sections into a separate document.
 
 Enjoy efficient AV1 re‑encoding.
+
 
 
 

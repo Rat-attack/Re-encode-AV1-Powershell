@@ -2,34 +2,44 @@
 
 # Re-Encode AV1 (PowerShell)
 
-PowerShell 7+ script for interactive or batch re‑encoding of video files to AV1 using FFmpeg + FFprobe. Includes optional down‑scaling, VR → 2D conversion, queue management, progress display, size comparison, and (disabled-by-default) conditional source deletion.
+PowerShell 7+ script for interactive or batch re‑encoding of video files to AV1 using FFmpeg + FFprobe. Includes optional down‑scaling, VR → 2D ## 13. Troubleshooting
+| Symptom | Check |
+|---------|-------|
+| FFmpeg not found | Paths to `$ffmpegPath` / `$ffprobePath` correct? Try running the automated installer: `.\Install-FFmpeg.ps1` |
+| Progress stuck at 0% | Very short file or FFmpeg not emitting timing yet (wait up to ~30s). |
+| Queue never starts | You answered No to "Start encoding now?" – rerun and choose Yes or drag the queue file. |
+| Output overwrote original | `$global:outName` removed/empty? Ensure suffix remains distinct. |
+| Source deleted unexpectedly | Verify you set *all three* deletion toggles; review `$DeleteSourceLog`. |
+| Script is seemingly frozen after Please wait message | See if an file already exists with the same name as the output intended name, if one does delete or rename it and reattempt. |
+| Installer fails | Try running as Administrator, check internet connection, or use manual setup instead. |n, queue management, progress display, size comparison, and (disabled-by-default) conditional source deletion.
 
 </div>
 
 ## Table of Contents
 1. [Overview](#1-overview)
 2. [Requirements](#2-requirements)
-3. [Quick Start](#3-quick-start)
-4. [Configuration Summary](#4-configuration-summary)
+3. [Automated Installation](#3-automated-installation)
+4. [Manual Setup](#4-manual-setup)
+5. [Configuration Summary](#5-configuration-summary)
 	* [Safety Flags (Deletion Logic)](#safety-flags-deletion-logic)
-5. [Usage Modes](#5-usage-modes)
+6. [Usage Modes](#6-usage-modes)
 	* [Interactive Single / Mixed Files](#a-interactive-single--mixed-files)
 	* [Bulk Defaults Mode](#b-bulk-defaults-mode)
 	* [Queue Mode Resume](#c-queue-mode-resume)
 	* [VR → 2D Conversion](#d-vr--2d-conversion)
-6. [Progress & Control](#6-progress--control)
-7. [Comparison & Logging](#7-comparison--logging)
-8. [Exit Codes & Failures](#8-exit-codes--failures)
-9. [Example Minimal Configuration Block](#9-example-minimal-configuration-block)
-10. [Recommended Starting Values](#10-recommended-starting-values)
-11. [Known Limitations / Future Ideas](#11-known-limitations--future-ideas)
-12. [Troubleshooting](#12-troubleshooting)
-13. [Contributing](#13-contributing)
-14. [Attribution](#14-attribution)
-15. [Disclaimer](#15-disclaimer)
+7. [Progress & Control](#7-progress--control)
+8. [Comparison & Logging](#8-comparison--logging)
+9. [Exit Codes & Failures](#9-exit-codes--failures)
+10. [Example Minimal Configuration Block](#10-example-minimal-configuration-block)
+11. [Recommended Starting Values](#11-recommended-starting-values)
+12. [Known Limitations / Future Ideas](#12-known-limitations--future-ideas)
+13. [Troubleshooting](#13-troubleshooting)
+14. [Contributing](#14-contributing)
+15. [Attribution](#15-attribution)
+16. [Disclaimer](#16-disclaimer)
 
 ## 1. Overview
-This repository contains a single interactive PowerShell script (`Re-Encode AV1.ps1`) plus a simple launcher batch file to enable drag & drop. The script can:
+This repository contains an interactive PowerShell script (`Re-Encode AV1.ps1`) plus a simple launcher batch file to enable drag & drop, and an automated FFmpeg installer (`Install-FFmpeg.ps1`) for easy setup. The script can:
 
 * Re‑encode one or many files (you can drop files or folders onto the launcher)
 * Build a queue before starting encoding
@@ -52,7 +62,29 @@ Convenient builds (used during development): https://github.com/GyanD/codexffmpe
 
 Ensure `ffmpeg.exe` and `ffprobe.exe` are accessible via the configured absolute paths (recommended) or are in the working directory.
 
-## 3. Quick Start
+## 3. Automated Installation
+**The easiest way to get started** is to use the included automated installer:
+
+1. Download or clone this repository
+2. Right-click on `Install-FFmpeg.ps1` and select "Run with PowerShell"
+   - Or open PowerShell in the folder and run: `.\Install-FFmpeg.ps1`
+3. The installer will:
+   - Download the latest FFmpeg build with AV1 support
+   - Extract and install FFmpeg binaries to the script directory
+   - Automatically update the configuration in `Re-Encode AV1.ps1`
+   - Verify the installation works correctly
+
+That's it! After the installer completes, you can immediately start using the encoding script by dragging video files onto `Re-encode AV1 launcher.bat`.
+
+### Installer Options
+- **Force reinstall**: Run `.\Install-FFmpeg.ps1 -Force` to reinstall even if FFmpeg is already present
+- **Custom path**: Run `.\Install-FFmpeg.ps1 -InstallPath "C:\Your\Path"` to install to a different location
+
+## 4. Manual Setup
+If you prefer to install FFmpeg manually or the automated installer doesn't work for your setup:
+## 4. Manual Setup
+If you prefer to install FFmpeg manually or the automated installer doesn't work for your setup:
+
 1. Download / clone this repository.
 2. Download and extract FFmpeg; place `ffmpeg.exe` and `ffprobe.exe` somewhere stable (e.g. `C:\Tools\FFmpeg`).
 3. Open `Re-Encode AV1.ps1` and edit the configuration block (top of file):
@@ -62,7 +94,7 @@ Ensure `ffmpeg.exe` and `ffprobe.exe` are accessible via the configured absolute
 5. Run once (right‑click → Run in PowerShell OR launch via the batch file) to verify no path errors.
 6. Drag video files or folders onto `Re-encode AV1 launcher.bat` to begin interactive queue building.
 
-## 4. Configuration Summary
+## 5. Configuration Summary
 All tunables reside at the top of `Re-Encode AV1.ps1`, it is recommended to read and change them all especially for batch running. Key variables:
 
 | Variable | Purpose | Notes |
@@ -94,7 +126,7 @@ Deletion is irreversible (no Recycle Bin). To enable source deletion you must:
 
 Without all three, source deletion will not occur. Review log output before trusting automation. Enabling this comes at your own risk as once again files are not recoverable.
 
-## 5. Usage Modes
+## 6. Usage Modes
 ### a. Interactive Single / Mixed Files
 Run the script (or drag items). You will be prompted per file for:
 * CRF
@@ -114,7 +146,7 @@ If you pass the queue file itself as the only argument (e.g. drag `Queue.txt` on
 ### d. VR → 2D Conversion
 Prompts allow a draft encode (very fast, high CRF, preset 13) to test FOV / pitch, then a final pass. Supports fisheye input path and equirectangular handling via FFmpeg `v360` filter. There is no batch mode version of this due to the specific configuration you'll most likely have to do.
 
-## 6. Progress & Control
+## 7. Progress & Control
 During encoding a live percentage and ETA are shown (derived from parsed `time=` and total duration). Press `q` then choose:
 * Abort Now (kills current job; partial output file is removed)
 * Abort After (finish current job, stop before next)
@@ -122,7 +154,7 @@ During encoding a live percentage and ETA are shown (derived from parsed `time=`
 Ctrl+C is also trapped to terminate ungracefully compared to the 'q' method.
 It is possible to change 'q' method to trigger on another single key input via going to roughly line 264.
 
-## 7. Comparison & Logging
+## 8. Comparison & Logging
 If `$compare = $true` the script evaluates output vs source file size:
 * Larger output → optionally delete new file if `$compareDel = $true` else keep & log.
 * Smaller output → optionally delete source if the (dangerous) deletion trio is enabled, a log is always made.
@@ -134,7 +166,7 @@ Written logs (most are never overwritten/deleted):
 * Non‑zero exit codes (`$errorLog`)
 * Queue backup (overwritten whenever an new queue starts) (`$queuebackupFile`)
 
-## 8. Exit Codes & Failures
+## 9. Exit Codes & Failures
 Failed jobs remain in the queue file; successful jobs are removed. A summary is printed at the end including counts of failed jobs and “bigger output” cases. The codes are what FFMPEG outputs to the script and so it is up to yourself to find out what they mean. However below is commonly reported exit codes and their rough fixes.
 
 ### Common exit codes:
@@ -147,7 +179,7 @@ Failed jobs remain in the queue file; successful jobs are removed. A summary is 
 | 255 | File not found / access denied | Output directory does not exist or permission denied. Create folder and check write permissions. |
 | Big Long Numbers | Windows got in the way or something else caused it to fail | Try seeing first if it's file specific or not and if you have any special characters in the file name and removing them. Those can mess with Powershell and FFMPEG's ability to find the files.|
 
-## 9. Example Minimal Configuration Block
+## 10. Example Minimal Configuration Block
 ```powershell
 $ffmpegPath      = 'C:\Tools\FFmpeg\ffmpeg.exe'
 $ffprobePath     = 'C:\Tools\FFmpeg\ffprobe.exe'
@@ -163,19 +195,19 @@ $sourceDel       = $false         # KEEP sources (recommended)
 $DeleteSourceLog = ''             # set only if enabling sourceDel
 ```
 
-## 10. Recommended Starting Values
+## 11. Recommended Starting Values
 * CRF 30 (balance quality / size; lower is higher quality)
 * Preset 6 (general) / 8 (VR default enforced by comments)
 * Leave `$batchScale` empty and set `$monitor = 2160` & `$global:monitorScale = scale='min(3840,iw)':2160` for automatic 4K→downscale gating.
 
-## 11. Known Limitations / Future Ideas
+## 12. Known Limitations / Future Ideas
 * Source deletion relies solely on relative size; no perceptual quality checks.
 * VR 2D branch marked “uncooked” and could be modularized along with more testing.
 * No hash comparison to prevent duplicate queue entries across sessions. Easily resulting in script seemingly freezing if an file with same name as the output file to be created exists in the same folder.
 * No audio re‑encode options (always copy). Could add bitrate control later.
 * No built‑in update mechanism or parameter file; all config is inline.
 
-## 12. Troubleshooting
+## 13. Troubleshooting
 | Symptom | Check |
 |---------|-------|
 | FFmpeg not found | Paths to `$ffmpegPath` / `$ffprobePath` correct? Escaped backslashes? |
@@ -187,14 +219,14 @@ $DeleteSourceLog = ''             # set only if enabling sourceDel
 
 Enable `$global:debugmode = $true` for deeper verbose tracing (internal loop messages).
 
-## 13. Contributing
+## 14. Contributing
 Open an issue or PR with concise description. Please keep style consistent (PowerShell 7+, explicit variable names, minimal external dependencies).
 There may be an length wait time prior to it being added to the main branch or there may be comments made to query further about it.
 
-## 14. Attribution
+## 15. Attribution
 Initial script created with iterative AI assistance and refined manually over ~2 months from an earlier batch (.bat) implementation that has been used for over a year personally.
 
-## 15. Disclaimer
+## 16. Disclaimer
 Use at your own risk. Always test on sample copies before enabling any deletion features. No warranty is provided. Any files deleted as a result are your own responsibility.
 
 ---
